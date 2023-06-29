@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+
+import figaro
+
+if __name__ == "__main__":
+    figaro.cli.figaro()
