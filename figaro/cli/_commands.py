@@ -34,8 +34,8 @@ def download():
 
 
 @figaro.command("file-upload")
-@click.argument("source")
-def file_upload(source):
+@click.argument("sourcelist", nargs=-1)
+def file_upload(sourcelist):
 
     config = lib.load_config()
 
@@ -50,6 +50,9 @@ def file_upload(source):
     remote_folder = client.folder(config["folder"]["box_id"])
     local_folder = config["folder"]["local_path"]
 
-    lib.fileupload_from_path(
-        remote_folder, os.path.abspath(source).replace(local_folder + "/", ""), source
-    )
+    for source in sourcelist:
+        lib.fileupload_from_path(
+            remote_folder,
+            os.path.abspath(source).replace(local_folder + "/", ""),
+            source,
+        )
