@@ -15,7 +15,7 @@ from figaro import lib
 @figaro.command("download")
 def download():
 
-    config = toml.load(".figaro")
+    config = lib.load_config()
 
     oauth = boxsdk.OAuth2(
         client_id=config["credentials"]["client_id"],
@@ -24,9 +24,11 @@ def download():
     )
 
     client = boxsdk.Client(oauth)
-    folder = client.folder(config["folder"]["box_id"])
 
-    filelist = lib.filelist_from_folder(folder)
+    remote_folder = client.folder(config["folder"]["box_id"])
+    local_folder = config["folder"]["local_path"]
+
+    filelist = lib.filelist_from_folder(remote_folder)
     filelist = [filelist[i : i + 3] for i in range(0, len(filelist), 3)]
     print(filelist)
 
@@ -35,7 +37,7 @@ def download():
 @click.argument("source")
 def file_upload(source):
 
-    config = toml.load(".figaro")
+    config = lib.load_config()
 
     oauth = boxsdk.OAuth2(
         client_id=config["credentials"]["client_id"],
@@ -44,6 +46,10 @@ def file_upload(source):
     )
 
     client = boxsdk.Client(oauth)
-    folder = client.folder(config["folder"]["box_id"])
 
-    lib.fileupload_from_path(folder, source)
+    remote_folder = client.folder(config["folder"]["box_id"])
+    local_folder = config["folder"]["local_path"]
+
+    lib.fileupload_from_path(
+        remote_folder, os.path.abspath(source).replace(local_folder + "/", ""), source
+    )

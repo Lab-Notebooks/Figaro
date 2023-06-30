@@ -3,10 +3,35 @@
 import os
 import sys
 import dill
+import toml
 import itertools
 import joblib
 import tqdm
 import multiprocessing
+
+
+def load_config():
+    """
+    Returns
+    -------
+    config
+    """
+    search_path = os.getcwd().split("/")
+
+    for node in search_path[::-1]:
+
+        config_file = os.path.join("/".join(search_path), ".figaro")
+
+        if os.path.isfile(config_file):
+            config = toml.load(config_file)
+            break
+
+        else:
+            search_path.remove(node)
+
+    config["folder"]["local_path"] = "/".join(search_path)
+
+    return config
 
 
 def filelist_from_item(item, path_from_root):
@@ -54,17 +79,17 @@ def filelist_from_folder(folder, path_from_root=""):
     return filelist
 
 
-def fileupload_from_path(folder, path_from_root):
+def fileupload_from_path(folder, path_from_root, file_path):
     """
     Arguments
     ---------
     folder		: boxsdk folder object
     path_from_root	: path from folder root
     """
-    if not os.path.isfile(path_from_root):
+    if (not os.path.isfile(file_path)) and (path_from_root not in os.getcwd()):
         raise ValueError
 
-    upload_size = os.stat(path_from_root).st_size
+    upload_size = os.stat(file_path).st_size
     upload_id = None
     upload_obj = folder
 
@@ -82,12 +107,12 @@ def fileupload_from_path(folder, path_from_root):
 
     if upload_id:
         if upload_size < 20000000:
-            updated_file = upload_obj.update_contents(path_from_root)
+            updated_file = upload_obj.update_contents(file_path)
             print(f'File "{updated_file.name}" has been updated')
 
         else:
             # uploads new large file version
-            chunked_uploader = upload_obj.get_chunked_uploader(path_from_root)
+            chunked_uploader = upload_obj.get_chunked_uploader(file_path)
             uploaded_file = chunked_uploader.start()
             print(
                 f'File "{uploaded_file.name}" uploaded to Box with file ID {uploaded_file.id}'
@@ -96,13 +121,13 @@ def fileupload_from_path(folder, path_from_root):
 
     else:
         if upload_size < 20000000:
-            new_file = upload_obj.upload(path_from_root)
+            new_file = upload_obj.upload(file_path)
             print(f'File "{new_file.name}" uploaded to Box with file ID {new_file.id}')
 
         else:
             # uploads large file to a root folder
             chunked_uploader = upload_obj.get_chunked_uploader(
-                file_path=path_from_root, file_name=node
+                file_path=file_path, file_name=node
             )
             uploaded_file = chunked_uploader.start()
             print(
