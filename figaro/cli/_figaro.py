@@ -14,7 +14,9 @@ import click
 def figaro(ctx, version):
     """
     \b
-    Command line tool to organize and manage computing jobs.
+    Figaro is a wrapper over Box (https://box.com)
+    Python SDK to manage data syncronization requirements
+    for supercomputing workloads on linux platforms.
     """
     if ctx.invoked_subcommand is None and not version:
         subprocess.run(

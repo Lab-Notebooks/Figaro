@@ -1,29 +1,12 @@
 """Module for library"""
 
 import os
-import re
+import sys
 import dill
 import itertools
 import joblib
 import tqdm
 import multiprocessing
-
-
-def available_cpu_count():
-    """Number of available virtual or physical CPUs on this system, i.e.
-    user/real as output by time(1) when called with an optimally scaling
-    userspace-only program"""
-
-    # cpuset
-    # cpuset may restrict the number of *available* processors
-    try:
-        m = re.search(r"(?m)^Cpus_allowed:\s*(.*)$", open("/proc/self/status").read())
-        if m:
-            res = bin(int(m.group(1).replace(",", ""), 16)).count("1")
-            if res > 0:
-                return res
-    except IOError:
-        pass
 
 
 def filelist_from_item(item, path_from_root):
@@ -69,3 +52,59 @@ def filelist_from_folder(folder, path_from_root=""):
 
     filelist = list(itertools.chain.from_iterable(filelist))
     return filelist
+
+
+def fileupload_from_path(folder, path_from_root):
+    """
+    Arguments
+    ---------
+    folder		: boxsdk folder object
+    path_from_root	: path from folder root
+    """
+    if not os.path.isfile(path_from_root):
+        raise ValueError
+
+    upload_size = os.stat(path_from_root).st_size
+    upload_id = None
+    upload_obj = folder
+
+    for node in path_from_root.split("/"):
+
+        itemlist = upload_obj.get_items(fields=["id,name"])
+        for item in itemlist:
+            if item.name == node:
+                upload_obj = item
+                if not hasattr(item, "get_items"):
+                    upload_id = item.id
+                continue
+
+        continue
+
+    if upload_id:
+        if upload_size < 20000000:
+            updated_file = upload_obj.update_contents(path_from_root)
+            print(f'File "{updated_file.name}" has been updated')
+
+        else:
+            # uploads new large file version
+            chunked_uploader = upload_obj.get_chunked_uploader(path_from_root)
+            uploaded_file = chunked_uploader.start()
+            print(
+                f'File "{uploaded_file.name}" uploaded to Box with file ID {uploaded_file.id}'
+            )
+            # the uploaded_file.id will be the same as 'existing_big_file_id'
+
+    else:
+        if upload_size < 20000000:
+            new_file = upload_obj.upload(path_from_root)
+            print(f'File "{new_file.name}" uploaded to Box with file ID {new_file.id}')
+
+        else:
+            # uploads large file to a root folder
+            chunked_uploader = upload_obj.get_chunked_uploader(
+                file_path=path_from_root, file_name=node
+            )
+            uploaded_file = chunked_uploader.start()
+            print(
+                f'File "{uploaded_file.name}" uploaded to Box with file ID {uploaded_file.id}'
+            )
