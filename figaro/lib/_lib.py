@@ -1,20 +1,31 @@
 """Module for library"""
 
+# Standard libraries
 import os
-import sys
-import dill
-import toml
 import itertools
-import joblib
-import tqdm
 import multiprocessing
+import toml
+
+# Specialized libraries
+import dill
+import joblib
+import boxsdk
 
 
 def load_config():
     """
+    \b
+    Load configuration from .figaro file
+    by search backwards along a directory
+    tree.
+
+    Arguments
+    ---------
+    None
+
     Returns
     -------
-    config
+    config	: dictionary representation of .figaro
     """
     search_path = os.getcwd().split("/")
 
@@ -24,41 +35,65 @@ def load_config():
 
         if os.path.isfile(config_file):
             config = toml.load(config_file)
+            config["folder"]["local_path"] = "/".join(search_path)
             break
 
-        else:
-            search_path.remove(node)
-
-    config["folder"]["local_path"] = "/".join(search_path)
+        search_path.remove(node)
 
     return config
+
+
+def validate_credentials(config):
+    """
+    \b
+    Validate user credentials for Oauth
+    or JWT authentication.
+
+    Arguments
+    ---------
+    config	: configuration dictionary
+
+    Returns
+    client	: boxsdk client object
+    """
+    oauth = boxsdk.OAuth2(
+        client_id=config["credentials"]["client_id"],
+        client_secret=config["credentials"]["client_secret"],
+        access_token=config["credentials"]["access_token"],
+    )
+
+    client = boxsdk.Client(oauth)
+
+    return client
 
 
 def filelist_from_item(item, path_from_root):
     """
     Arguments
     ---------
-    item		: boxsdk item object
-    path_from_root	: path from folder root
+    folder		: boxsdk folder/item object
+    path_from_root	: path from root
     """
     item = dill.loads(item)
 
     if hasattr(item, "get_items"):
         return filelist_from_folder(item, os.path.join(path_from_root, item.name))
-    else:
-        return (path_from_root, item.name, item.object_id)
+
+    return (path_from_root, item.name, item.object_id)
 
 
-def filelist_from_folder(folder, path_from_root=""):
+def filelist_from_folder(folder, path_from_root):
     """
+    \b
+    Get a list of files from a box folder
+
     Arguments
     ---------
-    folder		: boxsdk folder object
-    path_from_root	: path from folder root
+    folder		: boxsdk folder/item object
+    path_from_root	: path_from_root
     """
 
-    itemlist = [item for item in folder.get_items()]
-
+    itemlist = list(folder.get_items())
     num_procs = min(multiprocessing.cpu_count(), len(itemlist))
 
     if num_procs == 1:
@@ -79,23 +114,49 @@ def filelist_from_folder(folder, path_from_root=""):
     return filelist
 
 
-def fileupload_from_path(folder, path_from_root, file_path):
+def filelist_from_root(client, config):
+    """
+    \b
+    Get a list of files from a box folder
+
+    Arguments
+    ---------
+    client	: boxsdk client object
+    config	: configuration dictionary
+    """
+    folder = client.folder(config["folder"]["box_id"])
+    path_from_root = ""
+
+    filelist = filelist_from_folder(folder, path_from_root)
+    filelist = [filelist[i : i + 3] for i in range(0, len(filelist), 3)]
+
+    return filelist
+
+
+def fileupload_from_path(client, config, file_path):
     """
     Arguments
     ---------
-    folder		: boxsdk folder object
-    path_from_root	: path from folder root
+    client	: boxsdk client object
+    config	: configuration dictionary
+    file_path	: path to file from working directory
     """
-    if (not os.path.isfile(file_path)) and (path_from_root not in os.getcwd()):
+    if not os.path.isfile(file_path):
         raise ValueError
+
+    path_from_root = os.path.abspath(file_path).replace(
+        config["folder"]["local_path"] + "/", ""
+    )
 
     upload_size = os.stat(file_path).st_size
     upload_id = None
-    upload_obj = folder
+    upload_obj = client.folder(config["folder"]["box_id"])
+    upload_name = path_from_root.split("/")[-1]
 
     for node in path_from_root.split("/"):
 
         itemlist = upload_obj.get_items(fields=["id,name"])
+
         for item in itemlist:
             if item.name == node:
                 upload_obj = item
@@ -127,7 +188,7 @@ def fileupload_from_path(folder, path_from_root, file_path):
         else:
             # uploads large file to a root folder
             chunked_uploader = upload_obj.get_chunked_uploader(
-                file_path=file_path, file_name=node
+                file_path=file_path, file_name=upload_name
             )
             uploaded_file = chunked_uploader.start()
             print(
