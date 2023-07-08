@@ -9,6 +9,9 @@ import dill
 import psutil
 import joblib
 
+# Internal imports
+from figaro import lib
+
 
 def fileupload_from_path(client, config, filemap, foldermap, file_path):
     """
@@ -42,6 +45,8 @@ def fileupload_from_path(client, config, filemap, foldermap, file_path):
             str(foldermap[os.sep.join(path_from_root.split(os.sep)[:-1])])
         )
 
+    elif not os.sep.join(path_from_root.split(os.sep)[:-1]):
+        pass
     else:
         raise ValueError
 
@@ -76,6 +81,7 @@ def fileupload_from_path(client, config, filemap, foldermap, file_path):
         if upload_size < 20000000:
             new_file = upload_obj.upload(file_path)
             print(f'File "{new_file.name}" uploaded to Box with file ID {new_file.id}')
+            filemap[path_from_root] = new_file.id
 
         else:
             # uploads large file to a root folder
@@ -86,6 +92,7 @@ def fileupload_from_path(client, config, filemap, foldermap, file_path):
             print(
                 f'File "{uploaded_file.name}" uploaded to Box with file ID {uploaded_file.id}'
             )
+            filemap[path_from_root] = uploaded_file.id
 
 
 def fileupload_from_list(client, config, filemap, foldermap, filelist):
@@ -122,3 +129,5 @@ def fileupload_from_list(client, config, filemap, foldermap, filelist):
                 )
                 for file_path in filelist
             )
+
+    lib.write_boxmap(config, filemap, foldermap)
