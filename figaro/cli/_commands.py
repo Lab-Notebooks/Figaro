@@ -1,35 +1,36 @@
 """Command line interface for Jobrunner"""
 
+import time
 import click
 
 from figaro.cli import figaro
 from figaro import lib
 
 
-@figaro.command("file-list")
-def file_list():
+@figaro.command("map-files")
+def map_files():
     """
     \b
-    Get file-list from cloud storage
+    Write boxmap from cloud storage
     """
 
     config = lib.load_config()
     client = lib.validate_credentials(config)
 
-    filelist = lib.filelist_from_root(client, config)
-    print(filelist)
+    boxmap = lib.boxmap_from_root(client, config)
+    lib.write_boxmap(config, boxmap)
 
 
-@figaro.command("file-upload")
+@figaro.command("upload-files")
 @click.argument("sourcelist", nargs=-1)
-def file_upload(sourcelist):
+def upload_files(sourcelist):
     """
     \b
     Upload files to a box cloud storage
     """
 
     config = lib.load_config()
+    boxmap = lib.load_boxmap(config)
     client = lib.validate_credentials(config)
 
-    for source in sourcelist:
-        lib.fileupload_from_path(client, config, source)
+    lib.fileupload_from_list(client, config, boxmap, sourcelist)
