@@ -10,7 +10,7 @@ import psutil
 import joblib
 
 
-def fileupload_from_path(client, config, boxmap, file_path):
+def fileupload_from_path(client, config, filemap, foldermap, file_path):
     """
     Arguments
     ---------
@@ -32,14 +32,14 @@ def fileupload_from_path(client, config, boxmap, file_path):
     upload_obj = client.folder(config["folder"]["box_id"])
     upload_name = path_from_root.split(os.sep)[-1]
 
-    if path_from_root in boxmap.keys():
-        upload_id = str(boxmap[path_from_root])
+    if path_from_root in filemap.keys():
+        upload_id = str(filemap[path_from_root])
         upload_obj = client.file(upload_id)
 
-    elif os.sep.join(path_from_root.split(os.sep)[:-1]) in boxmap.keys():
+    elif os.sep.join(path_from_root.split(os.sep)[:-1]) in foldermap.keys():
         upload_id = None
         upload_obj = client.folder(
-            str(boxmap[os.sep.join(path_from_root.split(os.sep)[:-1])])
+            str(foldermap[os.sep.join(path_from_root.split(os.sep)[:-1])])
         )
 
     else:
@@ -88,7 +88,7 @@ def fileupload_from_path(client, config, boxmap, file_path):
             )
 
 
-def fileupload_from_list(client, config, boxmap, filelist):
+def fileupload_from_list(client, config, filemap, foldermap, filelist):
     """
     Arguments
     ---------
@@ -107,7 +107,9 @@ def fileupload_from_list(client, config, boxmap, filelist):
     if num_procs == 1:
 
         [
-            fileupload_from_path(dill.dumps(client), config, boxmap, file_path)
+            fileupload_from_path(
+                dill.dumps(client), config, filemap, foldermap, file_path
+            )
             for file_path in filelist
         ]
 
@@ -116,7 +118,7 @@ def fileupload_from_list(client, config, boxmap, filelist):
         with joblib.parallel_backend(n_jobs=num_procs, backend="loky"):
             joblib.Parallel(batch_size="auto")(
                 joblib.delayed(fileupload_from_path)(
-                    dill.dumps(client), config, boxmap, file_path
+                    dill.dumps(client), config, filemap, foldermap, file_path
                 )
                 for file_path in filelist
             )

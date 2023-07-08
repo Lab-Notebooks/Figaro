@@ -17,8 +17,8 @@ def map_files():
     config = lib.load_config()
     client = lib.validate_credentials(config)
 
-    boxmap = lib.boxmap_from_root(client, config)
-    lib.write_boxmap(config, boxmap)
+    filemap, foldermap = lib.boxmap_from_root(client, config)
+    lib.write_boxmap(config, filemap, foldermap)
 
 
 @figaro.command("upload-files")
@@ -30,7 +30,7 @@ def upload_files(sourcelist):
     """
 
     config = lib.load_config()
-    boxmap = lib.load_boxmap(config)
+    filemap, foldermap = lib.load_boxmap(config)
     client = lib.validate_credentials(config)
 
-    lib.fileupload_from_list(client, config, boxmap, sourcelist)
+    lib.fileupload_from_list(client, config, filemap, foldermap, sourcelist)

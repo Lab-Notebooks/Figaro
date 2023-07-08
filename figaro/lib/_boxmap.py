@@ -43,32 +43,47 @@ def load_boxmap(config):
     \b
     Load boxmap from .figaro/boxmap
     """
-    boxmap = multiprocessing.Manager().dict()
+    filemap = multiprocessing.Manager().dict()
+    foldermap = multiprocessing.Manager().dict()
 
     with open(
-        os.path.join(config["folder"]["local_path"], ".figaro", "boxmap"), "r"
+        os.path.join(config["folder"]["local_path"], ".figaro", "filemap"), "r"
     ) as stream:
         try:
-            boxmap.update(yaml.load(stream, Loader=YamlLoader))
+            filemap.update(yaml.load(stream, Loader=YamlLoader))
         except yaml.YAMLError as exc:
             print(exc)
 
-    return boxmap
+    with open(
+        os.path.join(config["folder"]["local_path"], ".figaro", "foldermap"), "r"
+    ) as stream:
+        try:
+            foldermap.update(yaml.load(stream, Loader=YamlLoader))
+        except yaml.YAMLError as exc:
+            print(exc)
+
+    return filemap, foldermap
 
 
-def write_boxmap(config, boxmap):
+def write_boxmap(config, filemap, foldermap):
     """
     \b
     Write boxmap to .figaro/boxmap
     """
     with open(
-        os.path.join(config["folder"]["local_path"], ".figaro", "boxmap"), "w"
+        os.path.join(config["folder"]["local_path"], ".figaro", "filemap"), "w"
     ) as mapfile:
-        for key, value in boxmap.items():
+        for key, value in filemap.items():
+            mapfile.write(f"{key}: {value}\n")
+
+    with open(
+        os.path.join(config["folder"]["local_path"], ".figaro", "foldermap"), "w"
+    ) as mapfile:
+        for key, value in foldermap.items():
             mapfile.write(f"{key}: {value}\n")
 
 
-def boxmap_from_item(item, path_from_root, boxmap):
+def boxmap_from_item(item, path_from_root, filemap, foldermap):
     """
     Arguments
     ---------
@@ -78,13 +93,16 @@ def boxmap_from_item(item, path_from_root, boxmap):
     """
     item = dill.loads(item)
 
-    boxmap.update({os.path.join(path_from_root, item.name): item.object_id})
-
     if hasattr(item, "get_items"):
-        boxmap_from_folder(item, os.path.join(path_from_root, item.name), boxmap)
+        boxmap_from_folder(
+            item, os.path.join(path_from_root, item.name), filemap, foldermap
+        )
+        foldermap.update({os.path.join(path_from_root, item.name): item.object_id})
+    else:
+        filemap.update({os.path.join(path_from_root, item.name): item.object_id})
 
 
-def boxmap_from_folder(folder, path_from_root, boxmap):
+def boxmap_from_folder(folder, path_from_root, filemap, foldermap):
     """
     \b
     Get a list of files from a box folder
@@ -106,7 +124,7 @@ def boxmap_from_folder(folder, path_from_root, boxmap):
     if num_procs == 1:
 
         [
-            boxmap_from_item(dill.dumps(item), path_from_root, boxmap)
+            boxmap_from_item(dill.dumps(item), path_from_root, filemap, foldermap)
             for item in itemlist
         ]
 
@@ -115,7 +133,7 @@ def boxmap_from_folder(folder, path_from_root, boxmap):
         with joblib.parallel_backend(n_jobs=num_procs, backend="loky"):
             joblib.Parallel(batch_size="auto")(
                 joblib.delayed(boxmap_from_item)(
-                    dill.dumps(item), path_from_root, boxmap
+                    dill.dumps(item), path_from_root, filemap, foldermap
                 )
                 for item in itemlist
             )
@@ -134,7 +152,9 @@ def boxmap_from_root(client, config):
     folder = client.folder(config["folder"]["box_id"])
     path_from_root = ""
 
-    boxmap = multiprocessing.Manager().dict()
-    boxmap_from_folder(folder, path_from_root, boxmap)
+    filemap = multiprocessing.Manager().dict()
+    foldermap = multiprocessing.Manager().dict()
 
-    return boxmap
+    boxmap_from_folder(folder, path_from_root, filemap, foldermap)
+
+    return filemap, foldermap
