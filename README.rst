@@ -96,15 +96,16 @@ Here is an overview of the commands:
 
 .. code::  
 
-   @software{your_name_2024_figaro,  
-   author       = {Your Name},  
-   title        = {Figaro: A Box SDK Wrapper for HPC Data Synchronization},  
-   month        = oct,  
-   year         = 2024,  
-   publisher    = {GitHub},  
-   version      = {v1.0},  
-   url          = {https://github.com/your_username/figaro}  
-   }  
+   @software{Figaro,
+      author       = {Akash Dhruv},
+      title        = {akashdhruv/Figaro: 0.dev},
+      month        = oct,
+      year         = 2024,
+      publisher    = {Zenodo},
+      version      = {0.dev},
+      doi          = {10.5281/zenodo.13910702},
+      url          = {https://doi.org/10.5281/zenodo.13910702}
+   }
 
 .. |Code style: black| image:: https://img.shields.io/badge/code%20style-black-000000.svg  
    :target: https://github.com/psf/black
