@@ -1,7 +1,0 @@
-[credentials]
-  client_id = ""
-  client_secret = ""
-  access_token = ""
-
-[folder]
-  box_id = "<box-folder-id>"
