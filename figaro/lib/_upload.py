@@ -97,7 +97,7 @@ def fileupload_from_list(client, config, filemap, foldermap, filelist):
 
     num_procs = min(cpu_avail, len(filelist))
 
-    if num_procs == 1:
+    if num_procs in [0,1]:
         [
             fileupload_from_path(
                 dill.dumps(client), config, filemap, foldermap, file_path
