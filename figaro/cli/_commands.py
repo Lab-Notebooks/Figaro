@@ -11,7 +11,7 @@ from figaro import lib
 def map_items():
     """
     \b
-    Write boxmap from cloud storage
+    Write project directory map from Box cloud storage
     """
 
     config = lib.load_config()
@@ -26,7 +26,7 @@ def map_items():
 def upload_files(sourcelist):
     """
     \b
-    Upload files to a box cloud storage
+    Upload files to Box cloud storage
     """
 
     config = lib.load_config()
@@ -37,8 +37,8 @@ def upload_files(sourcelist):
 
 
 @figaro.command("upload-folder")
-@click.argument("folder_path", type=click.Path(exists=True))
-def upload_folder(folder_path):
+@click.argument("folderpath", type=click.Path(exists=True))
+def upload_folder(folderpath):
     """
     \b
     Upload a folder and its contents to Box cloud storage.
@@ -47,7 +47,7 @@ def upload_folder(folder_path):
     filemap, foldermap = lib.load_boxmap(config)
     client = lib.validate_credentials(config)
 
-    lib.folderupload_recursive(client, config, filemap, foldermap, folder_path)
+    lib.folderupload_recursive(client, config, filemap, foldermap, folderpath)
 
 
 @figaro.command("download-files")
@@ -55,7 +55,7 @@ def upload_folder(folder_path):
 def download_files(sourcelist):
     """
     \b
-    Download files from a box cloud storage
+    Download files from Box cloud storage
     """
 
     config = lib.load_config()
@@ -66,8 +66,8 @@ def download_files(sourcelist):
 
 
 @figaro.command("download-folder")
-@click.argument("folder_path", type=click.Path(exists=True))
-def download_folder(folder_path):
+@click.argument("folderpath", type=click.Path(exists=True))
+def download_folder(folderpath):
     """
     \b
     Download a folder and its contents from Box cloud storage.
@@ -76,4 +76,4 @@ def download_folder(folder_path):
     filemap, foldermap = lib.load_boxmap(config)
     client = lib.validate_credentials(config)
 
-    lib.folderdownload_recursive(client, config, filemap, foldermap, folder_path)
+    lib.folderdownload_recursive(client, config, filemap, foldermap, folderpath)
