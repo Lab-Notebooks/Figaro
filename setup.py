@@ -23,7 +23,7 @@ with open("figaro/__meta__.py", mode="r") as source:
     }
 
 # core dependancies
-DEPENDENCIES = ["click", "toml", "boxsdk==3.7.2", "joblib", "tqdm", "dill", "pyyaml"]
+DEPENDENCIES = ["click", "toml", "boxsdk", "joblib", "tqdm", "dill", "pyyaml"]
 
 setup(
     name=metadata["__pkgname__"],
