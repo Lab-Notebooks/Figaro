@@ -46,21 +46,24 @@ def load_boxmap(config):
     filemap = multiprocessing.Manager().dict()
     foldermap = multiprocessing.Manager().dict()
 
-    with open(
-        os.path.join(config["folder"]["local_path"], ".figaro", "filemap"), "r"
-    ) as stream:
-        try:
-            filemap.update(yaml.load(stream, Loader=YamlLoader))
-        except yaml.YAMLError as exc:
-            print(exc)
+    filemap_path = os.path.join(config["folder"]["local_path"], ".figaro", "filemap")
+    foldermap_path = os.path.join(
+        config["folder"]["local_path"], ".figaro", "foldermap"
+    )
 
-    with open(
-        os.path.join(config["folder"]["local_path"], ".figaro", "foldermap"), "r"
-    ) as stream:
-        try:
-            foldermap.update(yaml.load(stream, Loader=YamlLoader))
-        except yaml.YAMLError as exc:
-            print(exc)
+    if os.stat(filemap_path).st_size != 0:
+        with open(filemap_path, "r") as stream:
+            try:
+                filemap.update(yaml.load(stream, Loader=YamlLoader))
+            except yaml.YAMLError as exc:
+                print(exc)
+
+    if os.stat(foldermap_path).st_size != 0:
+        with open(foldermap_path, "r") as stream:
+            try:
+                foldermap.update(yaml.load(stream, Loader=YamlLoader))
+            except yaml.YAMLError as exc:
+                print(exc)
 
     return filemap, foldermap
 
@@ -121,7 +124,7 @@ def boxmap_from_folder(folder, path_from_root, filemap, foldermap):
 
     num_procs = min(cpu_avail, len(itemlist))
 
-    if num_procs == 1:
+    if num_procs in [0, 1]:
 
         [
             boxmap_from_item(dill.dumps(item), path_from_root, filemap, foldermap)

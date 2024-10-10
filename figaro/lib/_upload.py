@@ -157,11 +157,13 @@ def folderupload_recursive(client, config, filemap, foldermap, folder_path):
             box_folder = new_folder
 
         # Upload each file in the current folder
-        for file in files:
-            file_path = os.path.join(root, file)
-            fileupload_from_path(
-                dill.dumps(client), config, filemap, foldermap, file_path
-            )
+        fileupload_from_list(
+            client,
+            config,
+            filemap,
+            foldermap,
+            [os.path.join(root, sfile) for sfile in files],
+        )
 
     # Write updated file and folder mappings back to disk
     lib.write_boxmap(config, filemap, foldermap)
