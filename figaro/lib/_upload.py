@@ -39,6 +39,12 @@ def fileupload_from_path(client, config, filemap, foldermap, file_path):
         upload_id = str(filemap[path_from_root])
         upload_obj = client.file(upload_id)
 
+        # Check if the file has changed before uploading
+        box_file = upload_obj.get()
+        if not lib.is_file_changed(file_path, box_file):
+            print(f'File "{box_file.name}" is up to date. Skipping upload.')
+            return
+
     elif os.sep.join(path_from_root.split(os.sep)[:-1]) in foldermap.keys():
         upload_id = None
         upload_obj = client.folder(
@@ -97,7 +103,7 @@ def fileupload_from_list(client, config, filemap, foldermap, filelist):
 
     num_procs = min(cpu_avail, len(filelist))
 
-    if num_procs in [0,1]:
+    if num_procs in [0, 1]:
         [
             fileupload_from_path(
                 dill.dumps(client), config, filemap, foldermap, file_path

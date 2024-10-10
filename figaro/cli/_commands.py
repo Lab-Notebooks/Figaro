@@ -35,6 +35,7 @@ def upload_files(sourcelist):
 
     lib.fileupload_from_list(client, config, filemap, foldermap, sourcelist)
 
+
 @figaro.command("upload-folder")
 @click.argument("folder_path", type=click.Path(exists=True))
 def upload_folder(folder_path):
@@ -47,3 +48,32 @@ def upload_folder(folder_path):
     client = lib.validate_credentials(config)
 
     lib.folderupload_recursive(client, config, filemap, foldermap, folder_path)
+
+
+@figaro.command("download-files")
+@click.argument("sourcelist", nargs=-1)
+def download_files(sourcelist):
+    """
+    \b
+    Download files from a box cloud storage
+    """
+
+    config = lib.load_config()
+    filemap, foldermap = lib.load_boxmap(config)
+    client = lib.validate_credentials(config)
+
+    lib.filedownload_from_list(client, config, filemap, foldermap, sourcelist)
+
+
+@figaro.command("download-folder")
+@click.argument("folder_path", type=click.Path(exists=True))
+def download_folder(folder_path):
+    """
+    \b
+    Download a folder and its contents from Box cloud storage.
+    """
+    config = lib.load_config()
+    filemap, foldermap = lib.load_boxmap(config)
+    client = lib.validate_credentials(config)
+
+    lib.folderdownload_recursive(client, config, filemap, foldermap, folder_path)
