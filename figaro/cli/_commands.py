@@ -41,7 +41,7 @@ def upload_files(sourcelist):
 def upload_folder(folderpath):
     """
     \b
-    Upload a folder and its contents to Box cloud storage.
+    Upload a folder and its contents to Box cloud storage
     """
     config = lib.load_config()
     filemap, foldermap = lib.load_boxmap(config)
@@ -70,7 +70,7 @@ def download_files(sourcelist):
 def download_folder(folderpath):
     """
     \b
-    Download a folder and its contents from Box cloud storage.
+    Download a folder and its contents from Box cloud storage
     """
     config = lib.load_config()
     filemap, foldermap = lib.load_boxmap(config)

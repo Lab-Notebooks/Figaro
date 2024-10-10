@@ -96,17 +96,20 @@ its functionality:
    ▶ figaro --help
    Usage: figaro [OPTIONS] COMMAND [ARGS]...
 
-     Figaro is a wrapper over Box (https://box.com) Python SDK to manage data
-     synchronization requirements for supercomputing workloads on linux platforms.
+     Figaro is a wrapper over Box (https://box.com)
+     Python SDK to manage data syncronization requirements
+     for supercomputing workloads on linux platforms.
 
    Options:
      -v, --version
      --help         Show this message and exit.
 
    Commands:
-     map-items      Write boxmap from cloud storage
-     upload-files   Upload files to a Box cloud storage
-     upload-folder  Upload a folder and its contents to Box cloud storage.
+     download-files   Download files from Box cloud storage
+     download-folder  Download a folder and its contents from Box cloud storage
+     map-items        Write project directory map from Box cloud storage
+     upload-files     Upload files to Box cloud storage
+     upload-folder    Upload a folder and its contents to Box cloud storage
 
 Here is an overview of the commands:
 
@@ -122,6 +125,15 @@ Here is an overview of the commands:
 #. ``figaro upload-folder <local_folder>`` - This command uploads an
    entire folder from your local system to a destination folder in Box
    cloud storage. It recursively uploads all files and subfolders,
+   providing an easy way to sync large datasets or project directories.
+
+#. ``figaro download-files <file_list>`` - Use this command to download
+   a list of files from your project Box cloud storage. Figaro handles
+   folder heiarchary implicitly using file and folder map
+
+#. ``figaro download-folder <cloud_folder>`` - This command downloads an
+   entire folder from Box cloud storage to the corresponding destination
+   on local system. It recursively downloads all files and subfolders,
    providing an easy way to sync large datasets or project directories.
 
 **********
