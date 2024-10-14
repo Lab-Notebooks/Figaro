@@ -13,6 +13,7 @@ import joblib
 import time
 import pytz
 from datetime import datetime
+import hashlib
 
 
 class YamlLoader(yaml.SafeLoader):
@@ -39,6 +40,31 @@ class YamlLoader(yaml.SafeLoader):
                 raise ValueError()
             mapping.add(key)
         return super().construct_mapping(node, deep)
+
+
+def calculate_file_hash(file_path, chunk_size=65536):
+    """
+    Calculates the SHA-1 hash of a file in chunks to avoid memory issues with large files.
+
+    Arguments
+    ---------
+    file_path : str
+        Path to the file.
+    chunk_size : int
+        Size of each chunk to read from the file. Default is 64KB.
+
+    Returns
+    -------
+    str : The SHA-1 hash of the file.
+    """
+    sha1 = hashlib.sha1()
+    with open(file_path, "rb") as f:
+        while True:
+            chunk = f.read(chunk_size)
+            if not chunk:
+                break
+            sha1.update(chunk)
+    return sha1.hexdigest()
 
 
 def is_file_changed(local_path, box_file, upload=False, download=False):
@@ -76,13 +102,29 @@ def is_file_changed(local_path, box_file, upload=False, download=False):
     # Get local file size
     local_size = os.path.getsize(local_path)
 
+    # Check modified times have changed
     if upload:
-        if (box_time_utc < local_time_utc) or (box_file.size != local_size):
+        if box_time_utc < local_time_utc:
+            return True
+    if download:
+        if box_time_utc > local_time_utc:
             return True
 
-    if download:
-        if (box_time_utc > local_time_utc) or (box_file.size != local_size):
-            return True
+    # Check if file sizes have changed
+    if box_file.size != local_size:
+        return True
+
+    # Compare file hashes (only check if the times or sizes are equal to avoid unnecessary hashing)
+    # time_hash = time.time()
+    local_hash = calculate_file_hash(local_path)
+    box_hash = box_file.sha1.lower()  # Box provides SHA-1 hash of the file content
+    # time_hash = time.time() - time_hash
+
+    # print(f"Hashing time: {time_hash}")
+
+    if local_hash[:40] != box_hash:
+        print(f"Local file hash: {local_hash[:40]}, Box file hash: {box_hash}")
+        return True
 
     return False
 
