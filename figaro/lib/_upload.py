@@ -41,7 +41,7 @@ def fileupload_from_path(client, config, filemap, foldermap, file_path):
 
         # Check if the file has changed before uploading
         box_file = upload_obj.get()
-        if not lib.is_file_changed(file_path, box_file):
+        if not lib.is_file_changed(file_path, box_file, upload=True):
             print(f'File "{box_file.name}" is up to date. Skipping upload.')
             return
 

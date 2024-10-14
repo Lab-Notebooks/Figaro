@@ -11,7 +11,8 @@ import yaml
 import psutil
 import joblib
 import time
-import hashlib
+import pytz
+from datetime import datetime
 
 
 class YamlLoader(yaml.SafeLoader):
@@ -40,34 +41,7 @@ class YamlLoader(yaml.SafeLoader):
         return super().construct_mapping(node, deep)
 
 
-def calculate_file_hash(file_path, block_size=1024 * 1024):
-    """
-    Calculate the SHA-256 hash of a file in chunks.
-
-    Arguments
-    ---------
-    file_path : str
-        Path to the file.
-    block_size : int
-        Size of each block to read at a time (default: 1 MB).
-
-    Returns
-    -------
-    str : The SHA-256 hash of the file.
-    """
-    sha256 = hashlib.sha256()
-
-    with open(file_path, "rb") as f:
-        while True:
-            block = f.read(block_size)
-            if not block:
-                break
-            sha256.update(block)
-
-    return sha256.hexdigest()
-
-
-def is_file_changed(local_path, box_file):
+def is_file_changed(local_path, box_file, upload=False, download=False):
     """
     Checks if the file has changed between local and cloud.
 
@@ -82,30 +56,33 @@ def is_file_changed(local_path, box_file):
     -------
     bool : True if the file has changed, False otherwise.
     """
+    if upload and download:
+        raise ValueError(f"upload and download are mutually exclusive options")
+
+    elif not upload and not download:
+        raise ValueError(f"Need either upload or download to be true")
+
     if not os.path.exists(local_path):
         return True
 
     # Get local file modification time (in seconds since the epoch)
     local_mtime = os.path.getmtime(local_path)
+    local_time_utc = datetime.utcfromtimestamp(local_mtime).replace(tzinfo=pytz.UTC)
 
     # Get Box file modification time (converted to seconds since the epoch)
-    box_mtime = time.mktime(time.strptime(box_file.modified_at, "%Y-%m-%dT%H:%M:%S%z"))
+    box_mtime = datetime.strptime(box_file.modified_at, "%Y-%m-%dT%H:%M:%S%z")
+    box_time_utc = box_mtime.astimezone(pytz.UTC)
 
-    # Compare modification times
-    if box_mtime > local_mtime:
-        return True
-
-    # Compare file sizes
+    # Get local file size
     local_size = os.path.getsize(local_path)
-    if box_file.size != local_size:
-        return True
 
-    # Compare file hashes
-    # local_hash = calculate_file_hash(local_path)
-    # box_hash = box_file.sha1.lower() # Box provides SHA-1 hash for file content
-    #
-    # if local_hash[:40] != box_hash:
-    #    return True
+    if upload:
+        if (box_time_utc < local_time_utc) or (box_file.size != local_size):
+            return True
+
+    if download:
+        if (box_time_utc > local_time_utc) or (box_file.size != local_size):
+            return True
 
     return False
 

@@ -33,7 +33,7 @@ def filedownload_to_path(client, config, filemap, foldermap, file_path):
         file_id = filemap[path_from_root]
         box_file = client.file(file_id).get()
 
-        if lib.is_file_changed(file_path, box_file):
+        if lib.is_file_changed(file_path, box_file, download=True):
             with open(file_path, "wb") as download_stream:
                 box_file.download_to(download_stream)
             print(f'File "{box_file.name}" has been downloaded to {file_path}')
@@ -114,9 +114,11 @@ def folderdownload_recursive(client, config, filemap, foldermap, local_folder_pa
 
     for item in folder_items:
         if item.type == "file":
-            filelist.append(os.path.join(os.path.abspath(local_folder_path),item.name))
+            filelist.append(os.path.join(os.path.abspath(local_folder_path), item.name))
         elif item.type == "folder":
-            folderlist.append(os.path.join(os.path.abspath(local_folder_path),item.name))
+            folderlist.append(
+                os.path.join(os.path.abspath(local_folder_path), item.name)
+            )
 
     filedownload_from_list(client, config, filemap, foldermap, filelist)
 
