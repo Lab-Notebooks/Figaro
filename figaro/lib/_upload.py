@@ -43,7 +43,7 @@ def fileupload_from_path(client, config, filemap, foldermap, file_path):
         # Check if the file has changed before uploading
         box_file = upload_obj.get()
         if not lib.is_file_changed(file_path, box_file, upload=True):
-            message = (f'    -File "{box_file.name}" is up to date. Skipping upload.')
+            message = f'    - File "{box_file.name}" is up to date. Skipped upload.'
             return message
 
     elif os.sep.join(path_from_root.split(os.sep)[:-1]) in foldermap.keys():
@@ -60,20 +60,18 @@ def fileupload_from_path(client, config, filemap, foldermap, file_path):
     if upload_id:
         if upload_size < 20000000:
             updated_file = upload_obj.update_contents(file_path)
-            message = (f'    -File "{updated_file.name}" has been updated')
+            message = f'    - File "{updated_file.name}" has been updated'
 
         else:
             # uploads new large file version
             chunked_uploader = upload_obj.get_chunked_uploader(file_path)
             uploaded_file = chunked_uploader.start()
-            message = (
-                f'    -File "{uploaded_file.name}" uploaded to Box with file ID {uploaded_file.id}'
-            )
+            message = f'    - File "{uploaded_file.name}" has been updated'
 
     else:
         if upload_size < 20000000:
             new_file = upload_obj.upload(file_path)
-            message = (f'File "{new_file.name}" uploaded to Box with file ID {new_file.id}')
+            message = f'    - File "{new_file.name}" uploaded to Box with file ID {new_file.id}'
             filemap[path_from_root] = new_file.id
 
         else:
@@ -82,12 +80,11 @@ def fileupload_from_path(client, config, filemap, foldermap, file_path):
                 file_path=file_path, file_name=upload_name
             )
             uploaded_file = chunked_uploader.start()
-            message = (
-                f'    -File "{uploaded_file.name}" uploaded to Box with file ID {uploaded_file.id}'
-            )
+            message = f'    - File "{uploaded_file.name}" uploaded to Box with file ID {uploaded_file.id}'
             filemap[path_from_root] = uploaded_file.id
 
     return message
+
 
 def fileupload_from_list(client, config, filemap, foldermap, filelist):
     """
@@ -123,6 +120,7 @@ def fileupload_from_list(client, config, filemap, foldermap, filelist):
 
     lib.write_boxmap(config, filemap, foldermap)
     [print(f"{message}") for message in messages]
+
 
 def folderupload_recursive(client, config, filemap, foldermap, folder_path):
     """

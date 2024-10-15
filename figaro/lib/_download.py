@@ -37,9 +37,9 @@ def filedownload_to_path(client, config, filemap, foldermap, file_path):
         if lib.is_file_changed(file_path, box_file, download=True):
             with open(file_path, "wb") as download_stream:
                 box_file.download_to(download_stream)
-            message = (f'    -File "{box_file.name}" has been downloaded.')
+            message = f'    - File "{box_file.name}" has been downloaded.'
         else:
-            message = (f'    -File "{box_file.name}" is up to date. Skipping download.')
+            message = f'    - File "{box_file.name}" is up to date. Skipped download.'
 
     else:
         raise ValueError(f"{file_path} not found in filemap.")
@@ -83,6 +83,7 @@ def filedownload_from_list(client, config, filemap, foldermap, filelist):
 
     lib.write_boxmap(config, filemap, foldermap)
     [print(f"{message}") for message in messages]
+
 
 def folderdownload_recursive(client, config, filemap, foldermap, local_folder_path):
     """
