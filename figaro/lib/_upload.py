@@ -8,6 +8,7 @@ import math
 import dill
 import psutil
 import joblib
+import tqdm
 
 # Internal imports
 from figaro import lib
@@ -42,8 +43,8 @@ def fileupload_from_path(client, config, filemap, foldermap, file_path):
         # Check if the file has changed before uploading
         box_file = upload_obj.get()
         if not lib.is_file_changed(file_path, box_file, upload=True):
-            print(f'File "{box_file.name}" is up to date. Skipping upload.')
-            return
+            message = (f'    -File "{box_file.name}" is up to date. Skipping upload.')
+            return message
 
     elif os.sep.join(path_from_root.split(os.sep)[:-1]) in foldermap.keys():
         upload_id = None
@@ -59,20 +60,20 @@ def fileupload_from_path(client, config, filemap, foldermap, file_path):
     if upload_id:
         if upload_size < 20000000:
             updated_file = upload_obj.update_contents(file_path)
-            print(f'File "{updated_file.name}" has been updated')
+            message = (f'    -File "{updated_file.name}" has been updated')
 
         else:
             # uploads new large file version
             chunked_uploader = upload_obj.get_chunked_uploader(file_path)
             uploaded_file = chunked_uploader.start()
-            print(
-                f'File "{uploaded_file.name}" uploaded to Box with file ID {uploaded_file.id}'
+            message = (
+                f'    -File "{uploaded_file.name}" uploaded to Box with file ID {uploaded_file.id}'
             )
 
     else:
         if upload_size < 20000000:
             new_file = upload_obj.upload(file_path)
-            print(f'File "{new_file.name}" uploaded to Box with file ID {new_file.id}')
+            message = (f'File "{new_file.name}" uploaded to Box with file ID {new_file.id}')
             filemap[path_from_root] = new_file.id
 
         else:
@@ -81,11 +82,12 @@ def fileupload_from_path(client, config, filemap, foldermap, file_path):
                 file_path=file_path, file_name=upload_name
             )
             uploaded_file = chunked_uploader.start()
-            print(
-                f'File "{uploaded_file.name}" uploaded to Box with file ID {uploaded_file.id}'
+            message = (
+                f'    -File "{uploaded_file.name}" uploaded to Box with file ID {uploaded_file.id}'
             )
             filemap[path_from_root] = uploaded_file.id
 
+    return message
 
 def fileupload_from_list(client, config, filemap, foldermap, filelist):
     """
@@ -104,23 +106,23 @@ def fileupload_from_list(client, config, filemap, foldermap, filelist):
     num_procs = min(cpu_avail, len(filelist))
 
     if num_procs in [0, 1]:
-        [
+        messages = [
             fileupload_from_path(
                 dill.dumps(client), config, filemap, foldermap, file_path
             )
-            for file_path in filelist
+            for file_path in tqdm.tqdm(filelist, position=0)
         ]
     else:
         with joblib.parallel_backend(n_jobs=num_procs, backend="loky"):
-            joblib.Parallel(batch_size="auto")(
+            messages = joblib.Parallel(batch_size="auto")(
                 joblib.delayed(fileupload_from_path)(
                     dill.dumps(client), config, filemap, foldermap, file_path
                 )
-                for file_path in filelist
+                for file_path in tqdm.tqdm(filelist, position=0)
             )
 
     lib.write_boxmap(config, filemap, foldermap)
-
+    [print(f"{message}") for message in messages]
 
 def folderupload_recursive(client, config, filemap, foldermap, folder_path):
     """
@@ -140,6 +142,8 @@ def folderupload_recursive(client, config, filemap, foldermap, folder_path):
         relative_path = os.path.abspath(root).replace(
             config["folder"]["local_path"] + os.sep, ""
         )
+
+        print(f'Uploading local folder "{relative_path}"')
 
         # Check if the folder exists in the foldermap
         if relative_path in foldermap.keys():
@@ -170,6 +174,3 @@ def folderupload_recursive(client, config, filemap, foldermap, folder_path):
             foldermap,
             [os.path.join(root, sfile) for sfile in files],
         )
-
-    # Write updated file and folder mappings back to disk
-    lib.write_boxmap(config, filemap, foldermap)

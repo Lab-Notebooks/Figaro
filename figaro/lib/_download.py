@@ -8,6 +8,7 @@ import math
 import dill
 import psutil
 import joblib
+import tqdm
 
 # Internal imports
 from figaro import lib
@@ -36,12 +37,14 @@ def filedownload_to_path(client, config, filemap, foldermap, file_path):
         if lib.is_file_changed(file_path, box_file, download=True):
             with open(file_path, "wb") as download_stream:
                 box_file.download_to(download_stream)
-            print(f'File "{box_file.name}" has been downloaded to {file_path}')
+            message = (f'    -File "{box_file.name}" has been downloaded.')
         else:
-            print(f'File "{box_file.name}" is up to date. Skipping download.')
+            message = (f'    -File "{box_file.name}" is up to date. Skipping download.')
 
     else:
         raise ValueError(f"{file_path} not found in filemap.")
+
+    return message
 
 
 def filedownload_from_list(client, config, filemap, foldermap, filelist):
@@ -63,21 +66,23 @@ def filedownload_from_list(client, config, filemap, foldermap, filelist):
     num_procs = min(cpu_avail, len(filelist))
 
     if num_procs in [0, 1]:
-        [
+        messages = [
             filedownload_to_path(
                 dill.dumps(client), config, filemap, foldermap, file_path
             )
-            for file_path in filelist
+            for file_path in tqdm.tqdm(filelist, position=0)
         ]
     else:
         with joblib.parallel_backend(n_jobs=num_procs, backend="loky"):
-            joblib.Parallel(batch_size="auto")(
+            messages = joblib.Parallel(batch_size="auto")(
                 joblib.delayed(filedownload_to_path)(
                     dill.dumps(client), config, filemap, foldermap, file_path
                 )
-                for file_path in filelist
+                for file_path in tqdm.tqdm(filelist, position=0)
             )
 
+    lib.write_boxmap(config, filemap, foldermap)
+    [print(f"{message}") for message in messages]
 
 def folderdownload_recursive(client, config, filemap, foldermap, local_folder_path):
     """
@@ -101,10 +106,12 @@ def folderdownload_recursive(client, config, filemap, foldermap, local_folder_pa
     # Get the Box folder object using the folder_id
     box_folder = client.folder(folder_id)
 
+    print(f'Downloading box folder "{path_from_root}"')
+
     # Create the local folder if it doesn't exist
     if not os.path.exists(local_folder_path):
         os.makedirs(local_folder_path)
-        print(f'Created local folder "{local_folder_path}"')
+        print(f'Created local folder "{path_from_root}"')
 
     # Get the folder items (both files and subfolders)
     folder_items = box_folder.get_items()
@@ -128,6 +135,3 @@ def folderdownload_recursive(client, config, filemap, foldermap, local_folder_pa
         folderdownload_recursive(
             client, config, filemap, foldermap, new_local_folder_path
         )
-
-    # Optionally, update or save file and folder mappings
-    lib.write_boxmap(config, filemap, foldermap)

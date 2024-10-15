@@ -102,29 +102,30 @@ def is_file_changed(local_path, box_file, upload=False, download=False):
     # Get local file size
     local_size = os.path.getsize(local_path)
 
-    # Check modified times have changed
+    # Compare file times and hashes for upload or download
     if upload:
+        # Check if cloud file is older than the local file
         if box_time_utc < local_time_utc:
-            return True
+            #
+            # Get SHA-1 has for local and box file
+            local_hash = calculate_file_hash(local_path)
+            box_hash = box_file.sha1.lower()
+            #
+            # Check if hashes are inconsistent
+            if local_hash[:40] != box_hash:
+                return True
+
     if download:
+        # Check if local file is older than the cloud file
         if box_time_utc > local_time_utc:
-            return True
-
-    # Check if file sizes have changed
-    if box_file.size != local_size:
-        return True
-
-    # Compare file hashes (only check if the times or sizes are equal to avoid unnecessary hashing)
-    # time_hash = time.time()
-    local_hash = calculate_file_hash(local_path)
-    box_hash = box_file.sha1.lower()  # Box provides SHA-1 hash of the file content
-    # time_hash = time.time() - time_hash
-
-    # print(f"Hashing time: {time_hash}")
-
-    if local_hash[:40] != box_hash:
-        print(f"Local file hash: {local_hash[:40]}, Box file hash: {box_hash}")
-        return True
+            #
+            # Get SHA-1 has for local and box file
+            local_hash = calculate_file_hash(local_path)
+            box_hash = box_file.sha1.lower()
+            #
+            # Check if hashes are inconsistent
+            if local_hash[:40] != box_hash:
+                return True
 
     return False
 
